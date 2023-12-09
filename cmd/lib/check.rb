@@ -2,8 +2,9 @@
 # frozen_string_literal: true
 
 require "forwardable"
+
 APPLE_LAUNCHJOBS_REGEX =
-  /\A(?:application\.)?com\.apple\.(installer|Safari|systemevents|systempreferences)(?:\.|$)/.freeze
+  /\A(?:application\.)?com\.apple\.(installer|Preview|Safari|systemevents|systempreferences|Terminal)(?:\.|$)/.freeze
 
 module Check
   CHECKS = {
@@ -28,9 +29,10 @@ module Check
       format_launchjob = lambda { |file|
         name = file.basename(".plist").to_s
 
-        xml, = system_command! "plutil", args: ["-convert", "xml1", "-o", "-", "--", file], sudo: true
+        result = system_command "plutil", args: ["-convert", "xml1", "-o", "-", "--", file], sudo: true
+        return name unless result.success?
 
-        label = Plist.parse_xml(xml)["Label"]
+        label = result.plist["Label"]
         (name == label) ? name : "#{name} (#{label})"
       }
 
